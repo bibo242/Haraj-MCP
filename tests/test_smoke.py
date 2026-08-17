@@ -152,10 +152,33 @@ def test_compact_post_shape():
     expected_keys = {
         "id", "title", "price_sar", "price_display", "url",
         "city", "geo_city", "post_date", "has_image",
-        "thumb_url", "tags", "has_price",
+        "image_count", "thumb_urls", "tags", "has_price",
     }
     assert set(c.keys()) == expected_keys, f"keys mismatch: {set(c.keys()) ^ expected_keys}"
+    assert c["thumb_urls"] == ["https://mimg6cdn.haraj.com.sa/test.jpg"]
+    assert c["image_count"] == 1
     print(f"  OK  compact dict has exactly the {len(expected_keys)} expected keys")
+
+
+def test_compact_thumb_cap_at_three():
+    """A post with 5 images should return exactly 3 thumb_urls."""
+    from haraj_mcp.tools import _compact
+    from haraj.models import Post
+    urls = [f"https://mimg6cdn.haraj.com.sa/img{i}.jpg" for i in range(5)]
+    p = Post.model_validate({
+        "id": 1, "title": "t", "postDate": 1, "updateDate": 1,
+        "authorUsername": "a", "authorId": 1, "URL": "1/x/",
+        "bodyTEXT": "", "bodyHTML": "", "thumbURL": "x.jpg",
+        "hasImage": True, "hasVideo": False,
+        "city": "x", "geoCity": "y", "tags": [],
+        "imagesList": urls,
+        "price": None,
+    })
+    c = _compact(p)
+    assert c["image_count"] == 5, f"image_count should be 5 (total), got {c['image_count']}"
+    assert len(c["thumb_urls"]) == 3, f"thumb_urls should be capped at 3, got {len(c['thumb_urls'])}"
+    assert c["thumb_urls"] == urls[:3], "should return the first 3 URLs in order"
+    print(f"  OK  5-image post -> thumb_urls capped at 3, image_count=5")
 
 
 # --- 7. JWT validation ---
@@ -198,10 +221,22 @@ def test_check_auth_missing():
 # --- 9. end-to-end stdio ---
 
 def test_stdio_e2e():
-    """Spawn the server, send JSON-RPC initialize + tools/list, confirm response."""
-    proc = subprocess.run(
+    """Spawn the server, send JSON-RPC initialize + tools/list, confirm response.
+
+    Uses Popen with a real stdin pipe so the server has time to respond
+    to both messages before we close stdin. The `subprocess.run(input=...)`
+    pattern closes stdin immediately, which made the server shut down
+    before it could reply to tools/list.
+    """
+    proc = subprocess.Popen(
         [sys.executable, "-m", "haraj_mcp"],
-        input=(
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        messages = (
             json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize",
                         "params": {"protocolVersion": "2024-11-05",
                                    "capabilities": {},
@@ -211,20 +246,24 @@ def test_stdio_e2e():
             + "\n"
             + json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
             + "\n"
-        ),
-        capture_output=True,
-        text=True,
-        timeout=15,
-    )
+        )
+        stdout, stderr = proc.communicate(input=messages, timeout=15)
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait()
     responses = []
-    for line in proc.stdout.splitlines():
+    for line in stdout.splitlines():
         line = line.strip()
         if line.startswith("{"):
             try:
                 responses.append(json.loads(line))
             except json.JSONDecodeError:
                 pass
-    assert len(responses) >= 2, f"expected 2 JSON-RPC responses, got {len(responses)}: {proc.stdout[:500]!r}"
+    assert len(responses) >= 2, (
+        f"expected 2 JSON-RPC responses, got {len(responses)}: {stdout[:500]!r}\n"
+        f"--- stderr ---\n{stderr[:500]}"
+    )
     init = responses[0]
     assert init.get("id") == 1
     assert "result" in init, f"no result in initialize: {init}"
@@ -282,6 +321,8 @@ def main() -> int:
     test_search_has_real_variables()
     banner("6. compact serializer shape")
     test_compact_post_shape()
+    banner("6b. compact thumb cap at 3")
+    test_compact_thumb_cap_at_three()
     banner("7. JWT validation")
     test_jwt_validation()
     banner("8. check_auth missing .env")

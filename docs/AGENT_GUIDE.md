@@ -227,4 +227,8 @@ Agent: calls `live_streams()` and lists the open streams with their viewer count
 
 ---
 
+## Image viewing
+
+Compact results include `thumb_urls: list[str]` (up to 3 image URLs) and `image_count: int` (total). The agent can pass any of those URLs to its vision tool to view the post's photos. The 3-URL cap keeps listing responses small; posts with more than 3 images have the rest available via `full=True` or `get_post_details(post_id)`. Whether the user actually *sees* the images depends on their MCP client supporting vision (Claude Desktop, Cursor, opencode, etc. all do).
+
 If you want me to add an examples directory with full worked conversations in JSON form (so you can use them as few-shot examples for the agent), say so.

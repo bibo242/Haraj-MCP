@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "haraj-mcp"
-version = "0.2.0"
+version = "0.3.0"
 description = "Model Context Protocol server for haraj.com.sa — search and fetch Saudi marketplace listings from any MCP-aware agent."
 requires-python = ">=3.10"
 readme = "README.md"

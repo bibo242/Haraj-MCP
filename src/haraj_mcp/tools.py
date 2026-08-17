@@ -30,8 +30,15 @@ log = logging.getLogger("haraj_mcp.tools")
 # Compact serializer
 # -------------------------------------------------------------------------
 
-def _compact(post: Post) -> dict:
-    images = image_urls(post, max_n=1)
+def _compact(post: Post, max_thumbs: int = 3) -> dict:
+    """Compact post summary.
+
+    Returns up to `max_thumbs` image URLs so an LLM agent (or the
+    user's MCP client) can show the post's photos inline. The full
+    list of all images is still available via `full=True` (passes
+    the entire Post object including the un-truncated `imagesList`).
+    """
+    all_thumbs = image_urls(post, max_n=max_thumbs)
     return {
         "id": post.id,
         "title": post.title,
@@ -42,7 +49,8 @@ def _compact(post: Post) -> dict:
         "geo_city": post.geoCity,
         "post_date": post.postDate,
         "has_image": post.hasImage,
-        "thumb_url": images[0] if images else None,
+        "image_count": len(post.imagesList or []),
+        "thumb_urls": all_thumbs,
         "tags": list(post.tags or [])[:6],
         "has_price": post.price_sar is not None,
     }

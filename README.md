@@ -72,11 +72,18 @@ For `fetch_feed`, `promoted_posts`, and `search`, pass `full=True` to get the en
   "geo_city": "الدمام",
   "post_date": 1785729404,
   "has_image": true,
-  "thumb_url": "https://mimg6cdn.haraj.com.sa/...",
+  "image_count": 3,
+  "thumb_urls": [
+    "https://mimg6cdn.haraj.com.sa/.../a.jpg",
+    "https://mimg6cdn.haraj.com.sa/.../b.jpg",
+    "https://mimg6cdn.haraj.com.sa/.../c.jpg"
+  ],
   "tags": ["شاشات", "..."],
   "has_price": true
 }
 ```
+
+The compact result includes up to **3 image URLs** (`thumb_urls`). Pass any of those URLs to your vision tool to view the post's photos. For posts with more than 3 images, the rest are in the full Post object (`full=True`) or in `get_post_details(post_id)` — `image_count` tells you the total.
 
 ## Install
 
@@ -210,3 +217,7 @@ v0.2.0 replaces them with **21 tools** that mirror the actual operations haraj.c
 - `ViewOptions` has `mustLoginToView` (only present on `posts` op)
 - New `live_streams` tool for the non-GraphQL `livestream.haraj.com.sa` endpoint
 - `get_post_details` now uses the proper `similarPosts(id:)` endpoint (not the ID-as-keyword hack)
+
+## What changed in v0.3.0
+
+Compact post results now include up to **3 image URLs** (`thumb_urls`) plus an `image_count` field. The agent can pass any of those URLs to its vision tool to view the post's photos. For posts with more than 3 images, the rest are available via `full=True` (entire Post object) or `get_post_details(post_id)`. The cap of 3 keeps the listing response small (a typical photo is 200-500 KB; 3 URLs ≈ 1-2 KB of metadata).
