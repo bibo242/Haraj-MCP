@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "haraj-mcp"
+version = "0.2.0"
+description = "Model Context Protocol server for haraj.com.sa — search and fetch Saudi marketplace listings from any MCP-aware agent."
+requires-python = ">=3.10"
+readme = "README.md"
+dependencies = [
+    "httpx>=0.27,<1.0",
+    "pydantic>=2.7,<3.0",
+    "python-dotenv>=1.0,<2.0",
+    "mcp>=1.0,<2.0",
+]
+
+[project.scripts]
+haraj-mcp = "haraj_mcp.__main__:main"
+
+[tool.setuptools]
+package-dir = {haraj_mcp = "src/haraj_mcp"}
+packages = ["haraj_mcp", "haraj"]
+
+[tool.setuptools.package-data]
+"haraj_mcp" = ["py.typed"]

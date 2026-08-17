@@ -1,0 +1,39 @@
+# Secrets — never commit the real .env
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+*.so
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Test / debug artifacts
+api*sec*capture*.json
+apisec-*.json
+*.log
+tmp/
+.cache/
+
+# pip
+*.egg
+dist/
+build/
+pip-wheel-metadata/
