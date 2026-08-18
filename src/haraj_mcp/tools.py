@@ -100,15 +100,15 @@ async def fetch_feed(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        data = await client.fetch_feed(
-            tag, city=city, cities=cities, page=page, limit=min(max(limit, 1), 100),
-            before_update_date=before_update_date,
-            only_with_image=only_with_image,
-            only_with_video=only_with_video,
-            order_main_by_post_id=order_main_by_post_id,
-        )
+        async with _client(auth) as client:
+            data = await client.fetch_feed(
+                tag, city=city, cities=cities, page=page, limit=min(max(limit, 1), 100),
+                before_update_date=before_update_date,
+                only_with_image=only_with_image,
+                only_with_video=only_with_video,
+                order_main_by_post_id=order_main_by_post_id,
+            )
     except HarajError as exc:
         return {"ok": False, "error": str(exc), "posts": []}
     posts_raw = (data.get("posts") or {}).get("items") or []
@@ -134,9 +134,9 @@ async def promoted_posts(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        posts = await client.promoted_posts(tag, city=city)
+        async with _client(auth) as client:
+            posts = await client.promoted_posts(tag, city=city)
     except HarajError as exc:
         return {"ok": False, "error": str(exc), "posts": []}
     return {
@@ -156,9 +156,9 @@ async def related_tags(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        cities = await client.related_tags(tag, city=city)
+        async with _client(auth) as client:
+            cities = await client.related_tags(tag, city=city)
     except HarajError as exc:
         return {"ok": False, "error": str(exc), "cities": []}
     return {"tag": tag, "count": len(cities), "cities": cities}
@@ -173,9 +173,9 @@ async def is_following_tag(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        result = await client.is_following_tag(tag, city=city)
+        async with _client(auth) as client:
+            result = await client.is_following_tag(tag, city=city)
     except HarajError as exc:
         return {"ok": False, "error": str(exc)}
     return {"tag": tag, "is_following": result}
@@ -204,18 +204,18 @@ async def search(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        result = await client.search(
-            keyword,
-            cities=cities, city=city, tag=tag, tags=tags,
-            page=page, limit=min(max(limit, 1), 100),
-            only_with_image=only_with_image,
-            only_with_video=only_with_video,
-            hide_show_rooms=hide_show_rooms,
-            order_by_post_id=order_by_post_id,
-            during_date=during_date, near=near,
-        )
+        async with _client(auth) as client:
+            result = await client.search(
+                keyword,
+                cities=cities, city=city, tag=tag, tags=tags,
+                page=page, limit=min(max(limit, 1), 100),
+                only_with_image=only_with_image,
+                only_with_video=only_with_video,
+                hide_show_rooms=hide_show_rooms,
+                order_by_post_id=order_by_post_id,
+                during_date=during_date, near=near,
+            )
     except HarajError as exc:
         return {"ok": False, "error": str(exc), "posts": []}
     posts = [_full(p) if full else _compact(p) for p in result.items]
@@ -242,9 +242,9 @@ async def get_post_details(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        data = await client.get_post_details(post_id)
+        async with _client(auth) as client:
+            data = await client.get_post_details(post_id)
     except HarajError as exc:
         return {"ok": False, "error": str(exc)}
     if not data:
@@ -260,9 +260,9 @@ async def post_like_info(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        return await client.post_like_info(post_id)
+        async with _client(auth) as client:
+            return await client.post_like_info(post_id)
     except HarajError as exc:
         return {"ok": False, "error": str(exc)}
 
@@ -277,9 +277,9 @@ async def comments(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        return await client.comments(post_id, page=page, oldest_first=oldest_first)
+        async with _client(auth) as client:
+            return await client.comments(post_id, page=page, oldest_first=oldest_first)
     except HarajError as exc:
         return {"ok": False, "error": str(exc)}
 
@@ -297,11 +297,11 @@ async def user(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        return await client.user(
-            username=username, id=user_id, rating_summary_only=rating_summary_only
-        )
+        async with _client(auth) as client:
+            return await client.user(
+                username=username, id=user_id, rating_summary_only=rating_summary_only
+            )
     except HarajError as exc:
         return {"ok": False, "error": str(exc)}
 
@@ -314,9 +314,9 @@ async def is_following_user(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        result = await client.is_following_user(username)
+        async with _client(auth) as client:
+            result = await client.is_following_user(username)
     except HarajError as exc:
         return {"ok": False, "error": str(exc)}
     return {"username": username, "is_following": result}
@@ -330,9 +330,9 @@ async def notes(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        return await client.notes(set_read=set_read)
+        async with _client(auth) as client:
+            return await client.notes(set_read=set_read)
     except HarajError as exc:
         return {"ok": False, "error": str(exc)}
 
@@ -346,9 +346,9 @@ async def sellers_list(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        return await client.sellers_list(tags, page=page)
+        async with _client(auth) as client:
+            return await client.sellers_list(tags, page=page)
     except HarajError as exc:
         return {"ok": False, "error": str(exc)}
 
@@ -361,9 +361,9 @@ async def locker_shipment_offer(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        return await client.locker_shipment_offer(post_id)
+        async with _client(auth) as client:
+            return await client.locker_shipment_offer(post_id)
     except HarajError as exc:
         return {"ok": False, "error": str(exc)}
 
@@ -376,9 +376,9 @@ async def post_contact(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        return await client.post_contact(post_id)
+        async with _client(auth) as client:
+            return await client.post_contact(post_id)
     except HarajError as exc:
         return {"ok": False, "error": str(exc)}
 
@@ -391,9 +391,9 @@ async def follow_user(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        result = await client.follow_user(username)
+        async with _client(auth) as client:
+            result = await client.follow_user(username)
     except HarajError as exc:
         return {"ok": False, "error": str(exc)}
     return {"username": username, "is_following": result}
@@ -409,9 +409,9 @@ async def search_suggest(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        keywords = await client.search_suggest(prefix, tag=tag)
+        async with _client(auth) as client:
+            keywords = await client.search_suggest(prefix, tag=tag)
     except HarajError as exc:
         return {"ok": False, "error": str(exc), "keywords": []}
     return {"prefix": prefix, "count": len(keywords), "keywords": keywords}
@@ -425,9 +425,9 @@ async def trending_keywords(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        items = await client.trending_keywords(range_in_days=range_in_days)
+        async with _client(auth) as client:
+            items = await client.trending_keywords(range_in_days=range_in_days)
     except HarajError as exc:
         return {"ok": False, "error": str(exc), "trending": []}
     return {"range_in_days": range_in_days, "count": len(items), "trending": items}
@@ -441,9 +441,9 @@ async def outgoing_buy_requests(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        return await client.outgoing_buy_requests(page=page)
+        async with _client(auth) as client:
+            return await client.outgoing_buy_requests(page=page)
     except HarajError as exc:
         return {"ok": False, "error": str(exc)}
 
@@ -455,9 +455,9 @@ async def user_mention_suggestions(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        items = await client.user_mention_suggestions()
+        async with _client(auth) as client:
+            items = await client.user_mention_suggestions()
     except HarajError as exc:
         return {"ok": False, "error": str(exc), "suggestions": []}
     return {"count": len(items), "suggestions": items}
@@ -472,9 +472,9 @@ async def live_streams(
     auth, err = _auth_or_error(auth_path)
     if err:
         return err
-    client = _client(auth)
     try:
-        resp = await client.live_streams(limit=limit)
+        async with _client(auth) as client:
+            resp = await client.live_streams(limit=limit)
     except HarajError as exc:
         return {"ok": False, "error": str(exc), "streams": []}
     streams = resp.data.streams if resp.data else []
