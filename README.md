@@ -221,3 +221,7 @@ v0.2.0 replaces them with **21 tools** that mirror the actual operations haraj.c
 ## What changed in v0.3.0
 
 Compact post results now include up to **3 image URLs** (`thumb_urls`) plus an `image_count` field. The agent can pass any of those URLs to its vision tool to view the post's photos. For posts with more than 3 images, the rest are available via `full=True` (entire Post object) or `get_post_details(post_id)`. The cap of 3 keeps the listing response small (a typical photo is 200-500 KB; 3 URLs ≈ 1-2 KB of metadata).
+
+
+
+[![M8ven Score](https://m8ven.ai/badge/mcp/bibo242-haraj-mcp-try47z)](https://m8ven.ai/mcp/bibo242-haraj-mcp-try47z)
