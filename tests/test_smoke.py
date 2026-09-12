@@ -1,4 +1,4 @@
-"""Smoke tests for haraj-mcp v0.2.0.
+"""Smoke tests for haraj-mcp.
 
 Tests:
   1. All 21 tools register with FastMCP.
@@ -10,6 +10,9 @@ Tests:
   7. JWT validation works (valid, expired, malformed).
   8. check_auth errors cleanly when .env is missing.
   9. End-to-end stdio: server responds to JSON-RPC initialize + tools/list.
+ 10. Tool descriptors mention the real argument names.
+ 11. Every tool declares all four annotation hints as booleans.
+ 12. Every tool parameter has a schema description.
 
 Run:    python tests/test_smoke.py
 """
@@ -340,6 +343,32 @@ def test_all_tools_have_full_annotations():
     print(f"  OK  all 21 tools declare all four boolean annotation hints")
 
 
+# --- 12. every tool parameter carries a schema description ---
+
+def test_all_params_have_descriptions():
+    """TDQS (Glama) penalizes 0% schema description coverage, and agents
+    can't infer parameter intent from bare types. Assert every parameter
+    of every tool has a non-empty description in its JSON schema."""
+    from haraj_mcp.server import build_server
+
+    mcp = build_server()
+
+    async def list_tools():
+        return await mcp.list_tools()
+
+    total = 0
+    undocumented = []
+    for tool in asyncio.run(list_tools()):
+        props = (tool.inputSchema or {}).get("properties", {})
+        for name, spec in props.items():
+            total += 1
+            if not spec.get("description"):
+                undocumented.append(f"{tool.name}.{name}")
+    assert not undocumented, f"parameters missing descriptions: {undocumented}"
+    assert total >= 52, f"expected at least 52 documented parameters, got {total}"
+    print(f"  OK  all {total} tool parameters have schema descriptions")
+
+
 def main() -> int:
     banner("1. all 21 tools register")
     test_server_registers_all_tools()
@@ -365,6 +394,8 @@ def main() -> int:
     test_tool_descriptors_mention_real_args()
     banner("11. all tools have full annotations")
     test_all_tools_have_full_annotations()
+    banner("12. all params have descriptions")
+    test_all_params_have_descriptions()
     print("\nAll smoke tests passed.")
     return 0
 

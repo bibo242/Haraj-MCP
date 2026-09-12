@@ -169,7 +169,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":
 python tests/test_smoke.py
 ```
 
-11 tests cover: tool registration (21 tools), live `version` URL, `sec-ch-ua-platform-version` header, `initalChars` typo preservation, real search variables, compact serializer shape, JWT validation (valid/expired/malformed), `check_auth` error handling, a full stdio end-to-end test, and tool annotations (all four hints declared as booleans on every tool).
+12 tests cover: tool registration (21 tools), live `version` URL, `sec-ch-ua-platform-version` header, `initalChars` typo preservation, real search variables, compact serializer shape, JWT validation (valid/expired/malformed), `check_auth` error handling, a full stdio end-to-end test, tool annotations (all four hints declared as booleans on every tool), and JSON-schema descriptions on every tool parameter.
 
 ## Agent guide
 
@@ -228,6 +228,10 @@ Compact post results now include up to **3 image URLs** (`thumb_urls`) plus an `
 ## What changed in v0.4.0
 
 Every tool now declares all four MCP tool-annotation hints (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) as explicit booleans, so hosts can reason about and warn on tool behaviour (and OpenAI's directory accepts the server). Read-only tools are marked `readOnlyHint=true`; `notes` and `follow_user` are marked as mutating, and `check_auth` is marked local-only (`openWorldHint=false`). Added an MIT `LICENSE` file.
+
+## What changed in v0.5.0
+
+Every tool parameter now carries a human-readable description in its JSON schema (via `Annotated[..., Field(description=...)]`), taking schema description coverage from 0% to 100% across all 52 parameters. This raises the Glama TDQS score for tools that were previously penalized for bare parameter schemas.
 
 ## License
 
