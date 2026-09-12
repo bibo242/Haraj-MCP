@@ -14,9 +14,11 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
+from typing import Annotated
 
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
+from pydantic import Field
 
 from haraj_mcp import tools
 
@@ -121,16 +123,36 @@ def build_server() -> FastMCP:
         "Returns {count, has_next_page, view_options, posts}."
     ))
     async def _fetch_feed(
-        tag: str,
-        city: str | None = None,
-        cities: list[str] | None = None,
-        page: int = 0,
-        limit: int = 21,
-        before_update_date: int | None = None,
-        only_with_image: bool = True,
-        only_with_video: bool = False,
-        order_main_by_post_id: bool = False,
-        full: bool = False,
+        tag: Annotated[str, Field(description=(
+            "Arabic category/tag name, e.g. 'حراج السيارات' (cars) or "
+            "'حراج الأجهزة' (devices)."
+        ))],
+        city: Annotated[str | None, Field(description=(
+            "Single Arabic region name to filter by, e.g. 'الشرقيه'."
+        ))] = None,
+        cities: Annotated[list[str] | None, Field(description=(
+            "List of Arabic region names to filter by (multi-city)."
+        ))] = None,
+        page: Annotated[int, Field(description="Zero-based page index.")] = 0,
+        limit: Annotated[int, Field(description=(
+            "Number of posts to return (clamped to 1-100)."
+        ))] = 21,
+        before_update_date: Annotated[int | None, Field(description=(
+            "Pagination cursor in Unix seconds — pass the last item's "
+            "updateDate to get the next page."
+        ))] = None,
+        only_with_image: Annotated[bool, Field(description=(
+            "Only return posts that have at least one image."
+        ))] = True,
+        only_with_video: Annotated[bool, Field(description=(
+            "Only return posts that have a video."
+        ))] = False,
+        order_main_by_post_id: Annotated[bool, Field(description=(
+            "Order the main feed by post id instead of update date."
+        ))] = False,
+        full: Annotated[bool, Field(description=(
+            "Return full Post objects instead of compact summaries."
+        ))] = False,
     ) -> dict:
         return await tools.fetch_feed(
             tag=tag, city=city, cities=cities, page=page, limit=limit,
@@ -147,9 +169,15 @@ def build_server() -> FastMCP:
         "Optional: city. Returns {count, posts}."
     ))
     async def _promoted_posts(
-        tag: str,
-        city: str | None = None,
-        full: bool = False,
+        tag: Annotated[str, Field(description=(
+            "Arabic tag name for the promoted carousel, e.g. 'حراج الأجهزة'."
+        ))],
+        city: Annotated[str | None, Field(description=(
+            "Arabic region name to filter by."
+        ))] = None,
+        full: Annotated[bool, Field(description=(
+            "Return full Post objects instead of compact summaries."
+        ))] = False,
     ) -> dict:
         return await tools.promoted_posts(tag, city=city, full=full, auth_path=env_path)
 
@@ -159,8 +187,12 @@ def build_server() -> FastMCP:
         "tag pages. Required: tag. Optional: city. Returns [{tag, count, city}]."
     ))
     async def _related_tags(
-        tag: str,
-        city: str | None = None,
+        tag: Annotated[str, Field(description=(
+            "Arabic tag name to get city post-counts for, e.g. 'حراج السيارات'."
+        ))],
+        city: Annotated[str | None, Field(description=(
+            "Optional Arabic region name to scope the counts to."
+        ))] = None,
     ) -> dict:
         return await tools.related_tags(tag, city=city, auth_path=env_path)
 
@@ -169,8 +201,12 @@ def build_server() -> FastMCP:
         "True/false whether the authenticated user follows `tag`."
     ))
     async def _is_following_tag(
-        tag: str,
-        city: str | None = None,
+        tag: Annotated[str, Field(description=(
+            "Arabic tag name to check the authenticated user's follow status for."
+        ))],
+        city: Annotated[str | None, Field(description=(
+            "Optional Arabic region name to scope the check."
+        ))] = None,
     ) -> dict:
         return await tools.is_following_tag(tag, city=city, auth_path=env_path)
 
@@ -184,20 +220,46 @@ def build_server() -> FastMCP:
         "Returns {keyword, count, has_next_page, view_options, posts}."
     ))
     async def _search(
-        keyword: str,
-        cities: list[str] | None = None,
-        city: str | None = None,
-        tag: str | None = None,
-        tags: list[str] | None = None,
-        page: int = 0,
-        limit: int = 21,
-        only_with_image: bool = True,
-        only_with_video: bool = False,
-        hide_show_rooms: bool = False,
-        order_by_post_id: bool = False,
-        during_date: str | None = None,
-        near: str | None = None,
-        full: bool = False,
+        keyword: Annotated[str, Field(description=(
+            "Search keyword (Arabic or English), e.g. 'RTX 4090' or 'شاشة'."
+        ))],
+        cities: Annotated[list[str] | None, Field(description=(
+            "List of Arabic region names to filter by."
+        ))] = None,
+        city: Annotated[str | None, Field(description=(
+            "Single Arabic region name to filter by."
+        ))] = None,
+        tag: Annotated[str | None, Field(description=(
+            "Restrict the search to a single Arabic tag."
+        ))] = None,
+        tags: Annotated[list[str] | None, Field(description=(
+            "Restrict the search to a list of Arabic tags."
+        ))] = None,
+        page: Annotated[int, Field(description="Zero-based page index.")] = 0,
+        limit: Annotated[int, Field(description=(
+            "Number of posts to return (clamped to 1-100)."
+        ))] = 21,
+        only_with_image: Annotated[bool, Field(description=(
+            "Only return posts that have at least one image."
+        ))] = True,
+        only_with_video: Annotated[bool, Field(description=(
+            "Only return posts that have a video."
+        ))] = False,
+        hide_show_rooms: Annotated[bool, Field(description=(
+            "If true, hides dealer posts (real-estate filter)."
+        ))] = False,
+        order_by_post_id: Annotated[bool, Field(description=(
+            "Order results by post id instead of relevance/date."
+        ))] = False,
+        during_date: Annotated[str | None, Field(description=(
+            "Time window: '1days', '3days', '1week', or '1months'."
+        ))] = None,
+        near: Annotated[str | None, Field(description=(
+            "Geohash location filter like '@26.4336,50.1116'."
+        ))] = None,
+        full: Annotated[bool, Field(description=(
+            "Return full Post objects instead of compact summaries."
+        ))] = False,
     ) -> dict:
         return await tools.search(
             keyword=keyword, cities=cities, city=city, tag=tag, tags=tags,
@@ -215,8 +277,12 @@ def build_server() -> FastMCP:
         "Required: post_id. full (default true = full similarPosts response)."
     ))
     async def _get_post_details(
-        post_id: int,
-        full: bool = True,
+        post_id: Annotated[int, Field(description=(
+            "Haraj post id, e.g. 185926519."
+        ))],
+        full: Annotated[bool, Field(description=(
+            "Return the full similarPosts response instead of a summary."
+        ))] = True,
     ) -> dict:
         return await tools.get_post_details(post_id, full=full, auth_path=env_path)
 
@@ -224,7 +290,9 @@ def build_server() -> FastMCP:
     @mcp.tool(name="post_like_info", annotations=READ_ONLY, description=(
         "{is_like, total, is_following} for a post. Required: post_id."
     ))
-    async def _post_like_info(post_id: int) -> dict:
+    async def _post_like_info(
+        post_id: Annotated[int, Field(description="Haraj post id.")],
+    ) -> dict:
         return await tools.post_like_info(post_id, auth_path=env_path)
 
     # ----- 8. comments -----
@@ -233,9 +301,11 @@ def build_server() -> FastMCP:
         "oldest_first (default true)."
     ))
     async def _comments(
-        post_id: int,
-        page: int = 0,
-        oldest_first: bool = True,
+        post_id: Annotated[int, Field(description="Haraj post id.")],
+        page: Annotated[int, Field(description="Zero-based page index.")] = 0,
+        oldest_first: Annotated[bool, Field(description=(
+            "Return oldest comments first (false = newest first)."
+        ))] = True,
     ) -> dict:
         return await tools.comments(
             post_id, page=page, oldest_first=oldest_first, auth_path=env_path
@@ -248,9 +318,15 @@ def build_server() -> FastMCP:
         "rating_summary_only (default false) returns just the rating block."
     ))
     async def _user(
-        username: str | None = None,
-        user_id: int | None = None,
-        rating_summary_only: bool = False,
+        username: Annotated[str | None, Field(description=(
+            "Haraj username (URL-encoded Arabic is accepted)."
+        ))] = None,
+        user_id: Annotated[int | None, Field(description=(
+            "Numeric Haraj user id (alternative to username)."
+        ))] = None,
+        rating_summary_only: Annotated[bool, Field(description=(
+            "Return only the rating block instead of the full profile."
+        ))] = False,
     ) -> dict:
         return await tools.user(
             username=username, user_id=user_id,
@@ -261,7 +337,9 @@ def build_server() -> FastMCP:
     @mcp.tool(name="is_following_user", annotations=READ_ONLY, description=(
         "True/false whether the authenticated user follows `username`."
     ))
-    async def _is_following_user(username: str) -> dict:
+    async def _is_following_user(
+        username: Annotated[str, Field(description="Haraj username to check.")],
+    ) -> dict:
         return await tools.is_following_user(username, auth_path=env_path)
 
     # ----- 11. notes -----
@@ -269,7 +347,11 @@ def build_server() -> FastMCP:
         "User notifications (the bell icon). set_read (default false) marks "
         "them as read on the server."
     ))
-    async def _notes(set_read: bool = False) -> dict:
+    async def _notes(
+        set_read: Annotated[bool, Field(description=(
+            "Mark the notifications as read on the server."
+        ))] = False,
+    ) -> dict:
         return await tools.notes(set_read=set_read, auth_path=env_path)
 
     # ----- 12. sellers_list -----
@@ -278,8 +360,10 @@ def build_server() -> FastMCP:
         "Required: tags (list of Arabic tag names)."
     ))
     async def _sellers_list(
-        tags: list[str],
-        page: int = 0,
+        tags: Annotated[list[str], Field(description=(
+            "List of Arabic tag names (real-estate/business/investment pages)."
+        ))],
+        page: Annotated[int, Field(description="Zero-based page index.")] = 0,
     ) -> dict:
         return await tools.sellers_list(tags, page=page, auth_path=env_path)
 
@@ -288,7 +372,9 @@ def build_server() -> FastMCP:
         "{offerId, isEligible, price} for a post's Locker shipping option. "
         "Required: post_id."
     ))
-    async def _locker_shipment_offer(post_id: int) -> dict:
+    async def _locker_shipment_offer(
+        post_id: Annotated[int, Field(description="Haraj post id.")],
+    ) -> dict:
         return await tools.locker_shipment_offer(post_id, auth_path=env_path)
 
     # ----- 14. post_contact -----
@@ -296,7 +382,9 @@ def build_server() -> FastMCP:
         "{contactText, contactMobile, shouldEnableWhatsApp} for a post. "
         "Required: post_id."
     ))
-    async def _post_contact(post_id: int) -> dict:
+    async def _post_contact(
+        post_id: Annotated[int, Field(description="Haraj post id.")],
+    ) -> dict:
         return await tools.post_contact(post_id, auth_path=env_path)
 
     # ----- 15. follow_user -----
@@ -304,7 +392,11 @@ def build_server() -> FastMCP:
         "Follow (or unfollow) a user. Required: username. Returns the new "
         "is_following state."
     ))
-    async def _follow_user(username: str) -> dict:
+    async def _follow_user(
+        username: Annotated[str, Field(description=(
+            "Haraj username to follow/unfollow."
+        ))],
+    ) -> dict:
         return await tools.follow_user(username, auth_path=env_path)
 
     # ----- 16. search_suggest -----
@@ -313,8 +405,12 @@ def build_server() -> FastMCP:
         "typed prefix. Required: prefix (e.g. 'شاشة'). Optional: tag."
     ))
     async def _search_suggest(
-        prefix: str,
-        tag: str | None = None,
+        prefix: Annotated[str, Field(description=(
+            "Text typed in the search box, e.g. 'شاشة'."
+        ))],
+        tag: Annotated[str | None, Field(description=(
+            "Optional Arabic tag to scope the suggestions."
+        ))] = None,
     ) -> dict:
         return await tools.search_suggest(prefix, tag=tag, auth_path=env_path)
 
@@ -323,7 +419,11 @@ def build_server() -> FastMCP:
         "Top trending search terms over the last N days. "
         "range_in_days (default 7). Returns [{keyword, score}]."
     ))
-    async def _trending_keywords(range_in_days: int = 7) -> dict:
+    async def _trending_keywords(
+        range_in_days: Annotated[int, Field(description=(
+            "Look-back window in days (default 7)."
+        ))] = 7,
+    ) -> dict:
         return await tools.trending_keywords(range_in_days=range_in_days, auth_path=env_path)
 
     # ----- 18. outgoing_buy_requests -----
@@ -331,7 +431,9 @@ def build_server() -> FastMCP:
         "'Buy with confidence' (وساطة) escrow requests the user has placed. "
         "Optional: page (default 0)."
     ))
-    async def _outgoing_buy_requests(page: int = 0) -> dict:
+    async def _outgoing_buy_requests(
+        page: Annotated[int, Field(description="Zero-based page index.")] = 0,
+    ) -> dict:
         return await tools.outgoing_buy_requests(page=page, auth_path=env_path)
 
     # ----- 19. user_mention_suggestions -----
@@ -348,7 +450,11 @@ def build_server() -> FastMCP:
         "Returns [{id, title, cover_url, streamer, num_messages, num_viewers, started_at}]. "
         "limit (default 40; the server caps it)."
     ))
-    async def _live_streams(limit: int = 40) -> dict:
+    async def _live_streams(
+        limit: Annotated[int, Field(description=(
+            "Maximum number of streams to return (the server caps it)."
+        ))] = 40,
+    ) -> dict:
         return await tools.live_streams(limit=limit, auth_path=env_path)
 
     # ----- 21. check_auth -----
