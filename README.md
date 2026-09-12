@@ -169,7 +169,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":
 python tests/test_smoke.py
 ```
 
-10 tests cover: tool registration (21 tools), live `version` URL, `sec-ch-ua-platform-version` header, `initalChars` typo preservation, real search variables, compact serializer shape, JWT validation (valid/expired/malformed), `check_auth` error handling, and a full stdio end-to-end test.
+11 tests cover: tool registration (21 tools), live `version` URL, `sec-ch-ua-platform-version` header, `initalChars` typo preservation, real search variables, compact serializer shape, JWT validation (valid/expired/malformed), `check_auth` error handling, a full stdio end-to-end test, and tool annotations (all four hints declared as booleans on every tool).
 
 ## Agent guide
 
@@ -189,6 +189,7 @@ Share `docs/AGENT_GUIDE.md` with the LLM client (or use it as a reference when w
 haraj-mcp/
 ├── pyproject.toml
 ├── README.md
+├── LICENSE
 ├── .env.example
 ├── src/haraj_mcp/
 │   ├── __init__.py
@@ -223,4 +224,12 @@ v0.2.0 replaces them with **21 tools** that mirror the actual operations haraj.c
 ## What changed in v0.3.0
 
 Compact post results now include up to **3 image URLs** (`thumb_urls`) plus an `image_count` field. The agent can pass any of those URLs to its vision tool to view the post's photos. For posts with more than 3 images, the rest are available via `full=True` (entire Post object) or `get_post_details(post_id)`. The cap of 3 keeps the listing response small (a typical photo is 200-500 KB; 3 URLs ≈ 1-2 KB of metadata).
+
+## What changed in v0.4.0
+
+Every tool now declares all four MCP tool-annotation hints (`readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`) as explicit booleans, so hosts can reason about and warn on tool behaviour (and OpenAI's directory accepts the server). Read-only tools are marked `readOnlyHint=true`; `notes` and `follow_user` are marked as mutating, and `check_auth` is marked local-only (`openWorldHint=false`). Added an MIT `LICENSE` file.
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).
 

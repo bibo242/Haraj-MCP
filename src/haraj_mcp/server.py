@@ -16,11 +16,45 @@ import os
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 from haraj_mcp import tools
 
 
 log = logging.getLogger("haraj_mcp.server")
+
+
+# Tool-annotation presets. Every tool must declare all four hints as
+# explicit booleans (OpenAI's directory rejects tools with missing or
+# non-boolean hints). Values match each handler's actual behaviour.
+READ_ONLY = ToolAnnotations(
+    readOnlyHint=True,
+    destructiveHint=False,
+    idempotentHint=True,
+    openWorldHint=True,
+)
+# check_auth only reads the local .env file — no network, no open world.
+READ_ONLY_LOCAL = ToolAnnotations(
+    readOnlyHint=True,
+    destructiveHint=False,
+    idempotentHint=True,
+    openWorldHint=False,
+)
+# notes(set_read=True) flips the read flag: additive, idempotent.
+NOTES_MUTATION = ToolAnnotations(
+    readOnlyHint=False,
+    destructiveHint=False,
+    idempotentHint=True,
+    openWorldHint=True,
+)
+# follow_user toggles follow/unfollow: not idempotent (calling twice
+# returns to the original state).
+FOLLOW_MUTATION = ToolAnnotations(
+    readOnlyHint=False,
+    destructiveHint=False,
+    idempotentHint=False,
+    openWorldHint=True,
+)
 
 
 SERVER_INSTRUCTIONS = """\
@@ -76,7 +110,7 @@ def build_server() -> FastMCP:
     env_path = Path(env_path_str) if env_path_str else None
 
     # ----- 1. fetch_feed -----
-    @mcp.tool(name="fetch_feed", description=(
+    @mcp.tool(name="fetch_feed", annotations=READ_ONLY, description=(
         "Fetch the post feed for a tag (the homepage + category pages). "
         "Required: tag (Arabic category name like 'حراج السيارات' or 'حراج الأجهزة'). "
         "Optional: city (Arabic region like 'الشرقيه'), cities (list of regions), "
@@ -108,7 +142,7 @@ def build_server() -> FastMCP:
         )
 
     # ----- 2. promoted_posts -----
-    @mcp.tool(name="promoted_posts", description=(
+    @mcp.tool(name="promoted_posts", annotations=READ_ONLY, description=(
         "Fetch the promoted-post carousel for a tag. Required: tag. "
         "Optional: city. Returns {count, posts}."
     ))
@@ -120,7 +154,7 @@ def build_server() -> FastMCP:
         return await tools.promoted_posts(tag, city=city, full=full, auth_path=env_path)
 
     # ----- 3. related_tags -----
-    @mcp.tool(name="related_tags", description=(
+    @mcp.tool(name="related_tags", annotations=READ_ONLY, description=(
         "Cities-with-counts for a given tag — powers the city-filter chips on "
         "tag pages. Required: tag. Optional: city. Returns [{tag, count, city}]."
     ))
@@ -131,7 +165,7 @@ def build_server() -> FastMCP:
         return await tools.related_tags(tag, city=city, auth_path=env_path)
 
     # ----- 4. is_following_tag -----
-    @mcp.tool(name="is_following_tag", description=(
+    @mcp.tool(name="is_following_tag", annotations=READ_ONLY, description=(
         "True/false whether the authenticated user follows `tag`."
     ))
     async def _is_following_tag(
@@ -141,7 +175,7 @@ def build_server() -> FastMCP:
         return await tools.is_following_tag(tag, city=city, auth_path=env_path)
 
     # ----- 5. search -----
-    @mcp.tool(name="search", description=(
+    @mcp.tool(name="search", annotations=READ_ONLY, description=(
         "Search haraj by keyword. Required: keyword. Optional: cities (list), city, "
         "tag, tags (list), page, limit, only_with_image (default true), "
         "only_with_video (default false), hide_show_rooms (default false), "
@@ -174,7 +208,7 @@ def build_server() -> FastMCP:
         )
 
     # ----- 6. get_post_details -----
-    @mcp.tool(name="get_post_details", description=(
+    @mcp.tool(name="get_post_details", annotations=READ_ONLY, description=(
         "Fetch a post + 3 related groups (similar posts in the same tag/city, "
         "similar images, related offers). This is the canonical 'fetch by id' "
         "— there is no direct getById operation in the GraphQL API. "
@@ -187,14 +221,14 @@ def build_server() -> FastMCP:
         return await tools.get_post_details(post_id, full=full, auth_path=env_path)
 
     # ----- 7. post_like_info -----
-    @mcp.tool(name="post_like_info", description=(
+    @mcp.tool(name="post_like_info", annotations=READ_ONLY, description=(
         "{is_like, total, is_following} for a post. Required: post_id."
     ))
     async def _post_like_info(post_id: int) -> dict:
         return await tools.post_like_info(post_id, auth_path=env_path)
 
     # ----- 8. comments -----
-    @mcp.tool(name="comments", description=(
+    @mcp.tool(name="comments", annotations=READ_ONLY, description=(
         "Comment list for a post. Required: post_id. Optional: page, "
         "oldest_first (default true)."
     ))
@@ -208,7 +242,7 @@ def build_server() -> FastMCP:
         )
 
     # ----- 9. user -----
-    @mcp.tool(name="user", description=(
+    @mcp.tool(name="user", annotations=READ_ONLY, description=(
         "Full user profile (rating, followers, location history, badges). "
         "Pass either username (URL-encoded Arabic works) or user_id. "
         "rating_summary_only (default false) returns just the rating block."
@@ -224,14 +258,14 @@ def build_server() -> FastMCP:
         )
 
     # ----- 10. is_following_user -----
-    @mcp.tool(name="is_following_user", description=(
+    @mcp.tool(name="is_following_user", annotations=READ_ONLY, description=(
         "True/false whether the authenticated user follows `username`."
     ))
     async def _is_following_user(username: str) -> dict:
         return await tools.is_following_user(username, auth_path=env_path)
 
     # ----- 11. notes -----
-    @mcp.tool(name="notes", description=(
+    @mcp.tool(name="notes", annotations=NOTES_MUTATION, description=(
         "User notifications (the bell icon). set_read (default false) marks "
         "them as read on the server."
     ))
@@ -239,7 +273,7 @@ def build_server() -> FastMCP:
         return await tools.notes(set_read=set_read, auth_path=env_path)
 
     # ----- 12. sellers_list -----
-    @mcp.tool(name="sellers_list", description=(
+    @mcp.tool(name="sellers_list", annotations=READ_ONLY, description=(
         "Sellers for a tag (used by real-estate / business / investment pages). "
         "Required: tags (list of Arabic tag names)."
     ))
@@ -250,7 +284,7 @@ def build_server() -> FastMCP:
         return await tools.sellers_list(tags, page=page, auth_path=env_path)
 
     # ----- 13. locker_shipment_offer -----
-    @mcp.tool(name="locker_shipment_offer", description=(
+    @mcp.tool(name="locker_shipment_offer", annotations=READ_ONLY, description=(
         "{offerId, isEligible, price} for a post's Locker shipping option. "
         "Required: post_id."
     ))
@@ -258,7 +292,7 @@ def build_server() -> FastMCP:
         return await tools.locker_shipment_offer(post_id, auth_path=env_path)
 
     # ----- 14. post_contact -----
-    @mcp.tool(name="post_contact", description=(
+    @mcp.tool(name="post_contact", annotations=READ_ONLY, description=(
         "{contactText, contactMobile, shouldEnableWhatsApp} for a post. "
         "Required: post_id."
     ))
@@ -266,7 +300,7 @@ def build_server() -> FastMCP:
         return await tools.post_contact(post_id, auth_path=env_path)
 
     # ----- 15. follow_user -----
-    @mcp.tool(name="follow_user", description=(
+    @mcp.tool(name="follow_user", annotations=FOLLOW_MUTATION, description=(
         "Follow (or unfollow) a user. Required: username. Returns the new "
         "is_following state."
     ))
@@ -274,7 +308,7 @@ def build_server() -> FastMCP:
         return await tools.follow_user(username, auth_path=env_path)
 
     # ----- 16. search_suggest -----
-    @mcp.tool(name="search_suggest", description=(
+    @mcp.tool(name="search_suggest", annotations=READ_ONLY, description=(
         "Live search-box autocomplete. Returns the top 10 suggestions for a "
         "typed prefix. Required: prefix (e.g. 'شاشة'). Optional: tag."
     ))
@@ -285,7 +319,7 @@ def build_server() -> FastMCP:
         return await tools.search_suggest(prefix, tag=tag, auth_path=env_path)
 
     # ----- 17. trending_keywords -----
-    @mcp.tool(name="trending_keywords", description=(
+    @mcp.tool(name="trending_keywords", annotations=READ_ONLY, description=(
         "Top trending search terms over the last N days. "
         "range_in_days (default 7). Returns [{keyword, score}]."
     ))
@@ -293,7 +327,7 @@ def build_server() -> FastMCP:
         return await tools.trending_keywords(range_in_days=range_in_days, auth_path=env_path)
 
     # ----- 18. outgoing_buy_requests -----
-    @mcp.tool(name="outgoing_buy_requests", description=(
+    @mcp.tool(name="outgoing_buy_requests", annotations=READ_ONLY, description=(
         "'Buy with confidence' (وساطة) escrow requests the user has placed. "
         "Optional: page (default 0)."
     ))
@@ -301,7 +335,7 @@ def build_server() -> FastMCP:
         return await tools.outgoing_buy_requests(page=page, auth_path=env_path)
 
     # ----- 19. user_mention_suggestions -----
-    @mcp.tool(name="user_mention_suggestions", description=(
+    @mcp.tool(name="user_mention_suggestions", annotations=READ_ONLY, description=(
         "Recent @-mention candidates for the comment / DM composer. "
         "Returns [{userId, username, handler}]."
     ))
@@ -309,7 +343,7 @@ def build_server() -> FastMCP:
         return await tools.user_mention_suggestions(auth_path=env_path)
 
     # ----- 20. live_streams -----
-    @mcp.tool(name="live_streams", description=(
+    @mcp.tool(name="live_streams", annotations=READ_ONLY, description=(
         "Currently-open haraj live shopping streams. Non-GraphQL REST endpoint. "
         "Returns [{id, title, cover_url, streamer, num_messages, num_viewers, started_at}]. "
         "limit (default 40; the server caps it)."
@@ -318,7 +352,7 @@ def build_server() -> FastMCP:
         return await tools.live_streams(limit=limit, auth_path=env_path)
 
     # ----- 21. check_auth -----
-    @mcp.tool(name="check_auth", description=(
+    @mcp.tool(name="check_auth", annotations=READ_ONLY_LOCAL, description=(
         "Verify the JWT and lastRequestId in .env are still valid. "
         "Returns {ok, expires_at, seconds_remaining, user_id} or "
         "{ok: false, error} if the JWT is missing or expired."

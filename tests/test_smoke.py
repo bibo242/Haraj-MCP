@@ -308,6 +308,38 @@ def test_tool_descriptors_mention_real_args():
     print(f"  OK  tool descriptors mention real variable names")
 
 
+# --- 11. every tool declares all four annotation hints as booleans ---
+
+def test_all_tools_have_full_annotations():
+    """OpenAI's directory rejects tools missing any of the four hints, or
+    with non-boolean values. Assert all 21 tools declare all four."""
+    from haraj_mcp.server import build_server
+
+    mcp = build_server()
+
+    async def list_tools():
+        return await mcp.list_tools()
+
+    hints = ("readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint")
+    # Tools that mutate remote state must not claim to be read-only.
+    mutating = {"notes", "follow_user"}
+    for tool in asyncio.run(list_tools()):
+        ann = tool.annotations
+        assert ann is not None, f"{tool.name} has no annotations"
+        for hint in hints:
+            value = getattr(ann, hint)
+            assert isinstance(value, bool), (
+                f"{tool.name}.{hint} must be a boolean, got {value!r}"
+            )
+        if tool.name in mutating:
+            assert ann.readOnlyHint is False, f"{tool.name} mutates but claims readOnly"
+        else:
+            assert ann.readOnlyHint is True, f"{tool.name} should be read-only"
+        # None of these tools destroy data.
+        assert ann.destructiveHint is False, f"{tool.name} should not be destructive"
+    print(f"  OK  all 21 tools declare all four boolean annotation hints")
+
+
 def main() -> int:
     banner("1. all 21 tools register")
     test_server_registers_all_tools()
@@ -331,6 +363,8 @@ def main() -> int:
     test_stdio_e2e()
     banner("10. tool descriptors mention real args")
     test_tool_descriptors_mention_real_args()
+    banner("11. all tools have full annotations")
+    test_all_tools_have_full_annotations()
     print("\nAll smoke tests passed.")
     return 0
 
